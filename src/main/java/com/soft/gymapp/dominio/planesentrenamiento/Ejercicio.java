@@ -2,13 +2,15 @@ package com.soft.gymapp.dominio.planesentrenamiento;
 
 import jakarta.persistence.*;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "ejercicio")
 public class Ejercicio {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Mejora para permitir autoincremento
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(nullable = false)
@@ -28,24 +30,39 @@ public class Ejercicio {
 
     // Constructor requerido por JPA
     public Ejercicio() {
-        //terminar constructor
+        // Constructor vacío para JPA
     }
 
-    // Estilo 1: Cookbook — método reusable y autocontenido
+    // Método de cálculo de calorías quemadas
     public float calcularCaloriasQuemadas(int duracionMinutos) {
-        final float MET = 6.0f; // valor ficticio de intensidad
-        final float pesoPromedio = 70.0f; // kg
-        return (MET * 3.5f * pesoPromedio / 200) * duracionMinutos;
+        final float MET = 6.0f;
+        final float PESO_PROMEDIO_KG = 70.0f;
+        final float FACTOR = 3.5f / 200;
+        return MET * FACTOR * PESO_PROMEDIO_KG * duracionMinutos;
     }
 
-    // Estilo 2: Error/Exception Handling
-    public void validarDatos() {
-        if (repeticiones <= 0 || series <= 0) {
-            throw new IllegalArgumentException("Repeticiones y series deben ser mayores a 0.");
-        }
+    // Validación sin excepciones (usando Notification)
+    public Notification validarDatos() {
+        Notification notification = new Notification();
+
         if (nombre == null || nombre.trim().isEmpty()) {
-            throw new IllegalArgumentException("El nombre del ejercicio no puede estar vacío.");
+            notification.addError("El nombre del ejercicio no puede estar vacío.");
         }
+
+        if (series <= 0) {
+            notification.addError("Las series deben ser mayores a 0.");
+        }
+
+        if (repeticiones <= 0) {
+            notification.addError("Las repeticiones deben ser mayores a 0.");
+        }
+
+        return notification;
+    }
+
+    // Resumen del ejercicio
+    public String obtenerResumen() {
+        return String.format("Ejercicio: %s (%d series de %d repeticiones)", nombre, series, repeticiones);
     }
 
     // Getters y Setters
@@ -67,12 +84,6 @@ public class Ejercicio {
     public Rutina getRutina() { return rutina; }
     public void setRutina(Rutina rutina) { this.rutina = rutina; }
 
-    // Estilo 3: Things — comportamiento definido como objeto "calculador"
-    public String resumenEjercicio() {
-        return String.format("Ejercicio: %s (%d x %d)", nombre, series, repeticiones);
-    }
-
-    // Estilo 4: Persistent Tables — integración con JPA correctamente configurada
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -84,5 +95,22 @@ public class Ejercicio {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    // Clase interna Notification para recolectar errores
+    public static class Notification {
+        private final List<String> errores = new ArrayList<>();
+
+        public void addError(String error) {
+            errores.add(error);
+        }
+
+        public boolean tieneErrores() {
+            return !errores.isEmpty();
+        }
+
+        public List<String> getErrores() {
+            return errores;
+        }
     }
 }
